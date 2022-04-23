@@ -1,6 +1,7 @@
 /*TODO: # Add usermame to sent string.
         # Remove and look over static variables.
         # Where to close() the  socket ??
+        #
         */
 
 package ChatWindow;
