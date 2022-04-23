@@ -1,7 +1,6 @@
-/*TODO: # Add usermame to sent string and break it up with delimiters?
+/*TODO: # Add usermame to sent string.
         # Remove and look over static variables.
-
-        - När Thread antopas automatiskt?
+        # Where to close() the  socket ??
         */
 
 package ChatWindow;
@@ -10,7 +9,6 @@ import javax.swing.*;
 import java.awt.event.*;
 import java.io.IOException;
 import java.net.*;
-import java.io.BufferedReader;
 
 public class ChatWindow extends JDialog {
 
@@ -29,12 +27,16 @@ public class ChatWindow extends JDialog {
     private InetAddress iadr;
     private InetSocketAddress group;
     private NetworkInterface netIf;
-    private MulticastSocket socket;
+    static protected MulticastSocket socket;
     String ip = "239.0.1.2";
     int port = 20480;
 
+    //Thread
+    static Thread listenerThread;
+    static MulticastListener receiver;
+
     //For sending and receiving data
-    DatagramPacket packet, packetReceived;
+    DatagramPacket packet;
     static byte[] data = new byte[256];
     String message;
 
@@ -42,12 +44,12 @@ public class ChatWindow extends JDialog {
 
         setContentPane(contentPane);
         setModal(true);
-
         // Setting up the network connection
         iadr = InetAddress.getByName(ip);
         group = new InetSocketAddress(iadr, port);
-        netIf = NetworkInterface.getByName("eth3");
+        netIf = NetworkInterface.getByName("eth4");
         socket = new MulticastSocket(port);
+        receiver = new MulticastListener(socket, this.getChatArea());
 
         sendButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
@@ -81,23 +83,35 @@ public class ChatWindow extends JDialog {
 
 
         disconnectUser.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) { onDisconnect(); }
+            public void actionPerformed(ActionEvent e) {
+                try {
+                    onDisconnect();
+                } catch (IOException ex) {
+
+                }
+            }
         });
-
-
     }
 
+    //Getter
+    public JTextArea getChatArea() {
+        return chatArea;
+    }
+
+    //Setter
+    public void setChatArea(JTextArea chatArea) {
+        this.chatArea = chatArea;
+    }
 
     private void onSend() throws SocketException, IOException{
-        message = userText.getText();
+        message = username + ": " + userText.getText();
         if(message.equals("") || message.equals(" ")) { } //Do nothing
         data = message.getBytes();
         packet = new DatagramPacket(data, data.length,iadr, port);
         socket.send(packet);
 
-        this.chatArea.append(message);
         this.userText.setText("");
-        System.out.println("Package sent.");                    // REMOVE LATER
+        System.out.println("Package sent.");                // For debugging purposes
     }
 
 
@@ -107,8 +121,11 @@ public class ChatWindow extends JDialog {
         connectedUsers.append(username);
     }
 
-    private void onDisconnect() {
-        socket.close();
+    private void onDisconnect() throws IOException {
+        listenerThread.interrupt();
+        socket.leaveGroup(group, netIf);
+        //socket.close();
+        connectedUsers.setText("");
         chatArea.append("Disconnected.\n");
     }
 
@@ -118,18 +135,13 @@ public class ChatWindow extends JDialog {
         username = JOptionPane.showInputDialog("Enter your username: ");  //Use for username later
 
         ChatWindow dialog = new ChatWindow();
+        listenerThread = new Thread(receiver);
+        listenerThread.start();
+
         dialog.chatArea.setEditable(false);
         dialog.connectedUsers.setEditable(false);
         dialog.pack();
         dialog.setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         dialog.setVisible(true);
-
-        //Receive data code
-        while (true) {
-            dialog.packetReceived = new DatagramPacket(data, data.length);
-            dialog.socket.receive(dialog.packetReceived);
-            dialog.message = new String(dialog.packetReceived.getData(), 0, dialog.packetReceived.getLength());
-            dialog.chatArea.append(dialog.message);
-        }
     }
 }
