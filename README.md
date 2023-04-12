@@ -6,7 +6,7 @@ Java Development Kit (JDK) 8 or higher
 IDE for Java (e.g. Eclipse, IntelliJ IDEA, NetBeans)
 
 ## Getting Started
-- Clone this repository to your local machine using git clone https://github.com/<username>/<repository-name>.git
+- Clone this repository to your local machine using git clone https://github.com/Kotik112/Multicast-Socket-Chat-Program.git
 - Open the project in your IDE
 - Build the project and run the ChatWindow class
 - When the program starts, you will be prompted to choose whether you want to start the server or the client
